@@ -1,0 +1,19 @@
+{
+  "name": "@local/directconvert-js-client",
+  "version": "0.1.0",
+  "description": "Small JavaScript REST client for Medialooks Direct Convert.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "direct-convert",
+    "medialooks",
+    "rest"
+  ],
+  "license": "MIT"
+}
