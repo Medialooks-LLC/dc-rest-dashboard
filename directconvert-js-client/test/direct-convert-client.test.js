@@ -15,7 +15,7 @@ test('default fetch is called with the global object as context', async () => {
     assert.equal(this, globalThis);
     assert.equal(String(input), 'http://localhost:9753/api/channels');
     assert.equal(init.method, 'GET');
-    assert.equal(init.headers.Authorization, '');
+    assert.equal(init.headers.Authorization, undefined);
     return Promise.resolve(new Response('[]'));
   };
 
@@ -36,4 +36,15 @@ test('relative base URLs resolve against the browser location', async () => {
   const sources = await client.getSources();
 
   assert.deepEqual(sources, []);
+});
+
+test('authorization token is sent as a bearer token', async () => {
+  globalThis.fetch = function fetch(input, init) {
+    assert.equal(String(input), 'http://localhost:9753/api/app/state');
+    assert.equal(init.headers.Authorization, 'Bearer perm:test-token');
+    return Promise.resolve(new Response('{}'));
+  };
+
+  const client = new DirectConvertClient({ token: 'Bearer perm:test-token' });
+  await client.getApplicationState();
 });

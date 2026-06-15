@@ -181,9 +181,13 @@ export class DirectConvertClient {
   async request(path, { method = 'GET', body, signal, headers = {} } = {}) {
     const requestHeaders = {
       Accept: 'application/json',
-      Authorization: this.token ? this.token.trim().replace(/^Bearer\s+/i, '') : '',
       ...headers
     };
+
+    if (this.token) {
+      const token = this.token.trim().replace(/^Bearer\s+/i, '');
+      requestHeaders.Authorization = `Bearer ${token}`;
+    }
 
     const init = {
       method,
