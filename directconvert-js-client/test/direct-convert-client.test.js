@@ -48,3 +48,28 @@ test('authorization token is sent as a bearer token', async () => {
   const client = new DirectConvertClient({ token: 'Bearer perm:test-token' });
   await client.getApplicationState();
 });
+
+test('actOnDialog sends ok, yes, no and cancel, and refuses unknown answers', async () => {
+  const paths = [];
+  const client = new DirectConvertClient({
+    baseUrl: 'http://localhost:9753/api/',
+    fetchImpl: (input) => {
+      paths.push(new URL(String(input)).pathname);
+      return Promise.resolve(new Response(''));
+    }
+  });
+
+  for (const action of ['ok', 'Yes', 'no', 'cancel', true, false, 'abc']) {
+    await client.actOnDialog(action);
+  }
+
+  assert.deepEqual(paths, [
+    '/api/app/dialog/ok',
+    '/api/app/dialog/yes',
+    '/api/app/dialog/no',
+    '/api/app/dialog/cancel',
+    '/api/app/dialog/ok',
+    '/api/app/dialog/cancel',
+    '/api/app/dialog/cancel'
+  ]);
+});

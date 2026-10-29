@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "sourceProject": "bujmakov/dc-rest-dashboard",
+  "sourceCommit": "41560507cdee8d6a665a2dfb0a8af0c5807f34fa",
+  "snapshotSha256": "0be655b3532166105bc2cc38f7b8e968a8c1826b132f80b577376ecf904ba186",
+  "managedFiles": [
+    ".gitignore",
+    "README.md",
+    "directconvert-js-client/README.md",
+    "directconvert-js-client/package-lock.json",
+    "directconvert-js-client/package.json",
+    "directconvert-js-client/src/index.js",
+    "directconvert-js-client/test/direct-convert-client.test.js",
+    "directconvert-web-dashboard/index.html",
+    "directconvert-web-dashboard/package-lock.json",
+    "directconvert-web-dashboard/package.json",
+    "directconvert-web-dashboard/src/main.js",
+    "directconvert-web-dashboard/src/styles.css",
+    "directconvert-web-dashboard/vite.config.js",
+    "docs/README.md",
+    "docs/SUMMARY.md",
+    "docs/application.md",
+    "docs/channels.md",
+    "docs/destinations.md",
+    "docs/devices.md",
+    "docs/schemas.md",
+    "docs/sources.md"
+  ]
+}

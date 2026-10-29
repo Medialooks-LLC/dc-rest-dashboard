@@ -1126,3 +1126,13 @@ pre {
     grid-template-columns: 1fr;
   }
 }
+
+.message-dialog {
+  max-width: 460px;
+}
+
+.message-text {
+  color: #d9e4ee;
+  white-space: pre-line;
+  line-height: 1.45;
+}

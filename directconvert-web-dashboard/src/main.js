@@ -200,16 +200,54 @@ async function runAction(label, action, { skipRefresh = false } = {}) {
   try {
     await action();
     pushLog(`${label}: ok`);
+    renderLog();
     if (!skipRefresh) {
       await refresh();
     }
   } catch (error) {
     pushLog(`${label}: ${error.message}`);
     renderLog();
+    // Direct Convert answers 409 while one of its message boxes is open: show it here so it can be answered
+    if (error.status === 409 && /message box/i.test(String(error.body ?? ''))) {
+      await openMessageBoxDialog();
+    }
   }
 }
 
-function openSettingsDialog() {
+async function openMessageBoxDialog() {
+  let info;
+  try {
+    info = await state.client.getDialog();
+  } catch (error) {
+    pushLog(`Message box: ${error.message}`);
+    renderLog();
+    return;
+  }
+  if (!info || typeof info !== 'object' || !info.IsDialog) {
+    return;
+  }
+  const buttons = info.DialogButtons === 'Yes_No'
+    ? '<button type="button" data-dialog-answer="no"><span>No</span></button><button type="button" data-dialog-answer="yes"><span>Yes</span></button>'
+    : '<button type="button" data-dialog-answer="ok"><span>OK</span></button>';
+  showDialog(`
+    <div class="dialog message-dialog">
+      <div class="dialog-header">
+        <div class="dialog-title">Direct Convert</div>
+      </div>
+      <div class="message-text">${escapeHtml(info.DialogContent ?? '')}</div>
+      <div class="dialog-actions">${buttons}</div>
+    </div>
+  `);
+  elements.modalRoot.querySelectorAll('[data-dialog-answer]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      closeDialog();
+      await runAction(`Message box: ${button.dataset.dialogAnswer}`, () => state.client.actOnDialog(button.dataset.dialogAnswer));
+    });
+  });
+}
+
+async function openSettingsDialog() {
+  const appSettings = await state.client.getSettings().catch(() => null);
   showDialog(`
     <form id="settingsForm" class="dialog">
       <div class="dialog-header">
@@ -220,16 +258,17 @@ function openSettingsDialog() {
       ${renderNumberField('resourceUpdateSeconds', 'Resources update interval, seconds', state.resourceUpdateSeconds)}
       ${renderNumberField('channelStatsUpdateSeconds', 'Channel stats update interval, seconds', state.channelStatsUpdateSeconds)}
       <div class="field-hint">Use 0 to disable an automatic refresh interval.</div>
+      ${renderGpuDecodingField(appSettings)}
       <div class="dialog-actions">
         <button type="button" data-close-dialog><i data-lucide="x"></i><span>Cancel</span></button>
         <button type="submit"><i data-lucide="save"></i><span>Save Settings</span></button>
       </div>
     </form>
   `);
-  document.querySelector('#settingsForm').addEventListener('submit', submitSettingsForm);
+  document.querySelector('#settingsForm').addEventListener('submit', (event) => submitSettingsForm(event, appSettings));
 }
 
-function submitSettingsForm(event) {
+async function submitSettingsForm(event, appSettings) {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
   state.previewUpdateSeconds = clampNumber(Number(form.get('previewUpdateSeconds')), 0, 3600);
@@ -244,6 +283,31 @@ function submitSettingsForm(event) {
   scheduleChannelStatsUpdates();
   pushLog(`Settings: preview ${formatInterval(state.previewUpdateSeconds)}, resources ${formatInterval(state.resourceUpdateSeconds)}, channel stats ${formatInterval(state.channelStatsUpdateSeconds)}`);
   renderLog();
+  await applyGpuDecoding(form, appSettings);
+}
+
+// GPU decoding is a Direct Convert preference (Preferences > Decode network streams on GPU); older versions do not report it
+function renderGpuDecodingField(appSettings) {
+  if (!appSettings || typeof appSettings.GpuDecoding !== 'boolean') {
+    return '';
+  }
+  return `
+      <div class="checkbox-row">
+        <input id="gpuDecoding" name="gpuDecoding" type="checkbox" ${appSettings.GpuDecoding ? 'checked' : ''} />
+        <label for="gpuDecoding">Decode network streams on GPU</label>
+      </div>
+      <div class="field-hint">A Direct Convert setting: NVIDIA NVDEC decodes the network stream sources opened after the change.</div>
+  `;
+}
+
+async function applyGpuDecoding(form, appSettings) {
+  if (!appSettings || typeof appSettings.GpuDecoding !== 'boolean') {
+    return;
+  }
+  const gpuDecoding = form.get('gpuDecoding') === 'on';
+  if (gpuDecoding !== appSettings.GpuDecoding) {
+    await runAction(`GPU decoding ${gpuDecoding ? 'on' : 'off'}`, () => state.client.updateSettings({ GpuDecoding: gpuDecoding }), { skipRefresh: true });
+  }
 }
 
 async function openSourceEditor(summary) {
@@ -319,7 +383,7 @@ function openDestinationDialog({ index = null, destination = {} } = {}) {
       </div>
       ${renderTextField('name', 'Output name', destination.Name || `Output ${state.destinations.length + 1}`, true)}
       <label><span>Output device</span><select name="device" required ${state.outputDevices.length ? '' : 'disabled'}>${outputOptions || '<option>No output devices loaded</option>'}</select></label>
-      ${renderTextField('keyingMode', 'Keying mode', destination.KeyingMode || '')}
+      ${renderSelectField('keyingMode', 'Keying mode', getKeyingModes(destination), destination.KeyingMode || getKeyingModes(destination)[0])}
       <div class="checkbox-row">
         <input id="conversionEnabled" name="isEnabled" type="checkbox" ${config.IsEnabled ? 'checked' : ''} />
         <label for="conversionEnabled">Enable format conversion</label>
@@ -328,6 +392,7 @@ function openDestinationDialog({ index = null, destination = {} } = {}) {
         ${renderSelectField('videoFormat', 'Video format', getConversionOptions('VideoFormats'), config.VideoFormat)}
         ${renderSelectField('frameRate', 'Frame rate', getConversionOptions('FrameRates'), config.FrameRate)}
         ${renderSelectField('interlace', 'Interlace', getConversionOptions('Interlaces'), config.Interlace)}
+        ${renderSelectField('fccType', 'Pixel format', getConversionOptions('PixelFormats'), config.FCCType)}
         ${renderSelectField('audioSampleRate', 'Audio sample rate', getConversionOptions('AudioSampleRates'), config.AudioSampleRate)}
         ${renderSelectField('audioChannel', 'Audio channels', getConversionOptions('AudioChannels'), config.AudioChannel)}
         ${renderSelectField('audioBit', 'Audio bits', getConversionOptions('AudioBits'), config.AudioBit)}
@@ -354,6 +419,7 @@ async function submitDestinationForm(event) {
       VideoFormat: form.get('videoFormat'),
       FrameRate: form.get('frameRate'),
       Interlace: form.get('interlace'),
+      FCCType: form.get('fccType'),
       AudioSampleRate: form.get('audioSampleRate'),
       AudioChannel: form.get('audioChannel'),
       AudioBit: form.get('audioBit')
@@ -771,6 +837,12 @@ function renderOption(value, label, selected) {
 
 function getConversionOptions(key) {
   return toList(state.conversionLists[key]);
+}
+
+// The keying modes of the output device come with the destination (KeyingModes); a new output starts with the usual ones.
+function getKeyingModes(destination) {
+  const modes = toList(destination.KeyingModes);
+  return modes.length ? modes : ['Disable Keying', 'Fill', 'Key'];
 }
 
 function normalizeResources(resources) {

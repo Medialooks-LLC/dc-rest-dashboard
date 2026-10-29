@@ -65,8 +65,10 @@ export class DirectConvertClient {
     return this.get('app/dialog', options);
   }
 
+  // action: 'ok', 'yes', 'no' or 'cancel' (true means 'ok', false means 'cancel')
   actOnDialog(action, options) {
-    const normalized = action === true || action === 'ok' ? 'ok' : 'cancel';
+    const value = action === true ? 'ok' : action === false ? 'cancel' : String(action ?? '').trim().toLowerCase();
+    const normalized = ['ok', 'yes', 'no', 'cancel'].includes(value) ? value : 'cancel';
     return this.put(`app/dialog/${normalized}`, {}, options);
   }
 
