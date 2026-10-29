@@ -2,6 +2,8 @@
 
 This workspace contains a small browser dashboard and a local JavaScript client for the Medialooks Direct Convert REST API.
 
+![Direct Convert web dashboard: four hockey cameras, one of them live on the NDI output](docs/images/dashboard.jpg)
+
 ## Projects
 
 - `directconvert-js-client` - dependency-free ESM client for the Direct Convert REST API.

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "sourceProject": "bujmakov/dc-rest-dashboard",
-  "sourceCommit": "41560507cdee8d6a665a2dfb0a8af0c5807f34fa",
-  "snapshotSha256": "0be655b3532166105bc2cc38f7b8e968a8c1826b132f80b577376ecf904ba186",
+  "sourceCommit": "8a559d4a4674cbd4aa06a568ecca59fb764f9102",
+  "snapshotSha256": "4146e6d53a084949cc28d3d8cbd305087202042226bfdacd1cef7b1a4cc3cb9b",
   "managedFiles": [
     ".gitignore",
     "README.md",
@@ -23,6 +23,7 @@
     "docs/channels.md",
     "docs/destinations.md",
     "docs/devices.md",
+    "docs/images/dashboard.jpg",
     "docs/schemas.md",
     "docs/sources.md"
   ]
